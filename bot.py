@@ -83,12 +83,28 @@ async def command_t(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.chat.send_action('typing')
 
     try:
-        translator = GoogleTranslator(source='auto', target='id')
-        result = await asyncio.wait_for(
-            asyncio.to_thread(translator.translate, source_text),
-            timeout=Config.TRANSLATION_TIMEOUT
-        )
+        # Retry mechanism (up to 3 attempts)
+        max_retries = 3
+        result = None
         
+        for attempt in range(max_retries):
+            try:
+                translator = GoogleTranslator(source='auto', target='id')
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(translator.translate, source_text),
+                    timeout=Config.TRANSLATION_TIMEOUT
+                )
+                if result:
+                    break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise e
+                logger.warning(f"Translation attempt {attempt + 1} failed, retrying... {e}")
+                await asyncio.sleep(1) # Wait a bit before retrying
+        
+        if not result:
+            raise Exception("Empty result from translator")
+
         # Send message and store the object
         sent_message = await context.bot.send_message(
             chat_id=update.message.chat_id,
@@ -145,11 +161,27 @@ async def command_c(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Could not delete message. Ensure bot is group Admin with Delete rights. Err: {e}")
         
-        translator = GoogleTranslator(source='auto', target='zh-CN')
-        result = await asyncio.wait_for(
-            asyncio.to_thread(translator.translate, source_text),
-            timeout=Config.TRANSLATION_TIMEOUT
-        )
+        # Retry mechanism (up to 3 attempts)
+        max_retries = 3
+        result = None
+        
+        for attempt in range(max_retries):
+            try:
+                translator = GoogleTranslator(source='auto', target='zh-CN')
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(translator.translate, source_text),
+                    timeout=Config.TRANSLATION_TIMEOUT
+                )
+                if result:
+                    break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise e
+                logger.warning(f"Translation attempt {attempt + 1} failed, retrying... {e}")
+                await asyncio.sleep(1) # Wait a bit before retrying
+        
+        if not result:
+            raise Exception("Empty result from translator")
         
         # Send translated text directly without quoting
         await context.bot.send_message(

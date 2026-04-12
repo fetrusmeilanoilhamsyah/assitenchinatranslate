@@ -69,12 +69,12 @@ async def command_t(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Check if this is a reply
     reply = update.message.reply_to_message
-    if not reply or not reply.text:
-        await update.message.reply_text("[Error] Mohon balas sebuah pesan teks dengan /t.")
+    source_text = (reply.text or reply.caption or "").strip() if reply else ""
+    
+    if not reply or not source_text:
+        await update.message.reply_text("[Error] Mohon balas sebuah pesan teks atau gambar berkelanjutan dengan /t.")
         return
 
-    source_text = reply.text.strip()
-    
     if len(source_text) > Config.MAX_TEXT_LENGTH:
         await update.message.reply_text(f"[Error] Teks melebihi batas {Config.MAX_TEXT_LENGTH} karakter.")
         return

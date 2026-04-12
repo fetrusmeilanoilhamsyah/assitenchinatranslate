@@ -1,0 +1,33 @@
+[Unit]
+Description=Telegram Translator Bot by FEE999888
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/translator-bot
+Environment="PATH=/home/ubuntu/translator-bot/venv/bin"
+ExecStart=/home/ubuntu/translator-bot/venv/bin/python bot.py
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitInterval=60
+
+# Logging
+StandardOutput=append:/home/ubuntu/translator-bot/logs/service.log
+StandardError=append:/home/ubuntu/translator-bot/logs/service.error.log
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits (optional)
+MemoryMax=200M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

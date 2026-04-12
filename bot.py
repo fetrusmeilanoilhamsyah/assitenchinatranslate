@@ -89,17 +89,24 @@ async def command_t(update: Update, context: ContextTypes.DEFAULT_TYPE):
             timeout=Config.TRANSLATION_TIMEOUT
         )
         
-        # Format the response in plain text
-        response_text = result
-        
-        await context.bot.send_message(
+        # Send message and store the object
+        sent_message = await context.bot.send_message(
             chat_id=update.message.chat_id,
-            text=response_text,
+            text=result,
             reply_to_message_id=reply.message_id
         )
         
         stats['total_translations'] = stats.get('total_translations', 0) + 1
         save_stats(stats)
+
+        # Auto-delete after 15 seconds
+        await asyncio.sleep(15)
+        try:
+            # Delete both the translation and the user's command
+            await context.bot.delete_message(chat_id=update.message.chat_id, message_id=sent_message.message_id)
+            await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+        except Exception as e:
+            logger.debug(f"Auto-delete failed (maybe already deleted or no permission): {e}")
         
     except asyncio.TimeoutError:
         logger.warning(f"Timeout translating for user {user_id}")

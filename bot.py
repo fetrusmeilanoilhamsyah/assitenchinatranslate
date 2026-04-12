@@ -115,8 +115,8 @@ async def command_t(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stats['total_translations'] = stats.get('total_translations', 0) + 1
         save_stats(stats)
 
-        # Auto-delete after 15 seconds
-        await asyncio.sleep(15)
+        # Auto-delete after 10 seconds
+        await asyncio.sleep(10)
         try:
             # Delete both the translation and the user's command
             await context.bot.delete_message(chat_id=update.message.chat_id, message_id=sent_message.message_id)

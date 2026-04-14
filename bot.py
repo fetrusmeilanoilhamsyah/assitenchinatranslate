@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Personal Translator Assistant Bot
-Commands: /t (translate reply to ID), /c (translate to CN and send)
+Commands: /t (translate reply to ID), /c (translate to CN and send), /i (translate to EN and send)
 """
 
 import logging
@@ -146,7 +146,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Personal Translator Assistant Ready.\n\n"
         "Commands:\n"
         "/t [reply] - Translate replied message to Indonesian.\n"
-        "/c <text>  - Translate to Chinese and send."
+        "/c <text>  - Translate to Chinese and send.\n"
+        "/i <text>  - Translate to English and send."
     )
 
 
@@ -260,6 +261,64 @@ async def command_c(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+@error_handler
+@rate_limit_check
+async def command_i(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Translate text to English, delete user's message, and send translated version."""
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        return
+
+    if not context.args:
+        return
+
+    source_text = " ".join(context.args)
+    if len(source_text) > Config.MAX_TEXT_LENGTH:
+        await update.message.reply_text(f"[Error] Teks terlalu panjang (maks {Config.MAX_TEXT_LENGTH} karakter).")
+        return
+
+    await update.message.chat.send_action('typing')
+
+    # Delete user's original /i message immediately
+    try:
+        await context.bot.delete_message(
+            chat_id=update.message.chat_id,
+            message_id=update.message.message_id
+        )
+    except Exception as e:
+        logger.warning(f"Could not delete /i command message (needs Admin rights): {e}")
+
+    try:
+        result = await _smart_translate(source_text, 'en')
+
+        # Jika /i dipakai sambil reply ke seseorang, kirim sebagai balasan ke pesan mereka
+        reply_to = update.message.reply_to_message
+        reply_msg_id = reply_to.message_id if reply_to else None
+
+        await context.bot.send_message(
+            chat_id=update.message.chat_id,
+            text=result,
+            reply_to_message_id=reply_msg_id,
+            allow_sending_without_reply=True
+        )
+
+        stats['total_translations'] = stats.get('total_translations', 0) + 1
+        save_stats(stats)
+
+    except asyncio.TimeoutError:
+        logger.warning(f"Translation timed out for user {user_id}")
+        await context.bot.send_message(
+            chat_id=update.message.chat_id,
+            text="[Error] Waktu habis. Coba lagi."
+        )
+    except Exception as e:
+        logger.error(f"Translation error (user {user_id}): {e}")
+        await context.bot.send_message(
+            chat_id=update.message.chat_id,
+            text="[Error] Gagal menerjemahkan. Coba lagi."
+        )
+
+
 async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     """Global error handler to prevent crashes."""
     logger.error(f"Unhandled error: {context.error}", exc_info=context.error)
@@ -300,6 +359,7 @@ def main():
     application.add_handler(CommandHandler('start', start_command))
     application.add_handler(CommandHandler('t', command_t))
     application.add_handler(CommandHandler('c', command_c))
+    application.add_handler(CommandHandler('i', command_i))
     application.add_error_handler(global_error_handler)
 
     logger.info("Bot started. Personal assistant mode active.")

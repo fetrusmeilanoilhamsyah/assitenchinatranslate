@@ -178,7 +178,8 @@ async def command_t(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sent_message = await context.bot.send_message(
             chat_id=update.message.chat_id,
             text=result,
-            reply_to_message_id=reply.message_id
+            reply_to_message_id=reply.message_id,       # Quote pesan China asli
+            allow_sending_without_reply=True             # Tetap kirim walau reply gagal
         )
 
         stats['total_translations'] = stats.get('total_translations', 0) + 1

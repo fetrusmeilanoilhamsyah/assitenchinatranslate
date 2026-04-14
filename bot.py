@@ -232,9 +232,15 @@ async def command_c(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         result = await _smart_translate(source_text, 'zh-CN')
 
+        # Jika /c dipakai sambil reply ke seseorang, kirim sebagai balasan ke pesan mereka
+        reply_to = update.message.reply_to_message
+        reply_msg_id = reply_to.message_id if reply_to else None
+
         await context.bot.send_message(
             chat_id=update.message.chat_id,
-            text=result
+            text=result,
+            reply_to_message_id=reply_msg_id,
+            allow_sending_without_reply=True
         )
 
         stats['total_translations'] = stats.get('total_translations', 0) + 1
